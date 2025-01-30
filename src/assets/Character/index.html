@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Model Viewer</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #model-container, #model-container-mobile {
+      width: 100%;
+      max-width: 600px;
+      height: 400px;
+      margin-bottom: 20px;
+    }
+
+    #loader, #loader-mobile {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div id="model-container"></div>
+  <div id="loader">Loading...</div>
+
+  <div id="model-container-mobile"></div>
+  <div id="loader-mobile">Loading...</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/examples/jsm/loaders/GLTFLoader.js">
+    
+  </script>
+  <script>
+    // Get the divs where we want to add the model
+    const container = document.getElementById('model-container');
+    const container_mobile = document.getElementById('model-container-mobile');
+
+    // Create scenes, cameras, and renderers
+    const scene = new THREE.Scene();
+    const sceneMobile = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+    const cameraMobile = new THREE.PerspectiveCamera(75, container_mobile.clientWidth / container_mobile.clientHeight, 0.1, 1000);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const rendererMobile = new THREE.WebGLRenderer({ antialias: true });
+
+    renderer.setClearColor(0xffffff); // Set background to white
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    container.appendChild(renderer.domElement);
+
+    rendererMobile.setClearColor(0xffffff); // Set background to white
+    rendererMobile.setPixelRatio(window.devicePixelRatio);
+    rendererMobile.setSize(container_mobile.clientWidth, container_mobile.clientHeight);
+    container_mobile.appendChild(rendererMobile.domElement);
+
+    // Add ambient lighting to both scenes
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.25); // Soft white light
+    scene.add(ambientLight);
+    sceneMobile.add(ambientLight.clone()); // Clone light for the second scene
+
+    // Get loader elements
+    const loaderElement = document.getElementById('loader');
+    const loaderElement_mobile = document.getElementById('loader-mobile');
+
+    let modelClone, modelCloneMobile;
+
+    // Load the GLB model using GLTFLoader
+    const loader = new THREE.GLTFLoader();
+    loader.load('Character.glb', (gltf) => {
+      const model = gltf.scene;
+
+      // Set model position and rotation
+      model.position.set(0, -2, 0);
+      model.rotation.y = Math.PI / 2;
+      model.scale.set(0.8, 0.8, 0.8);
+
+      // Clone model for both scenes
+      modelClone = model.clone();
+      modelCloneMobile = model.clone();
+
+      // Add models to scenes
+      scene.add(modelClone);
+      sceneMobile.add(modelCloneMobile);
+
+      // Hide loaders if present
+      if (loaderElement) loaderElement.style.display = 'none';
+      if (loaderElement_mobile) loaderElement_mobile.style.display = 'none';
+
+      animate();
+    }, null, (error) => {
+      console.error('Error loading model:', error);
+    });
+
+    // Set camera positions
+    camera.position.set(0, 0, 5);
+    cameraMobile.position.set(0, -1, 5);
+
+    // Rotation trackers for both models
+    let rotationSpeed = 0.005;
+    let rotationTracker = 0;
+    let rotationTrackerMobile = 0;
+    const targetRotation = Math.PI / 2;
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Rotate models
+      if (modelClone) {
+        modelClone.rotation.y += rotationSpeed;
+        rotationTracker += rotationSpeed;
+
+        if (rotationTracker >= targetRotation) {
+          rotationSpeed = -rotationSpeed;
+          rotationTracker = 0;
+        }
+      }
+
+      if (modelCloneMobile) {
+        modelCloneMobile.rotation.y += rotationSpeed;
+        rotationTrackerMobile += rotationSpeed;
+
+        if (rotationTrackerMobile >= targetRotation) {
+          rotationSpeed = -rotationSpeed;
+          rotationTrackerMobile = 0;
+        }
+      }
+
+      renderer.render(scene, camera);
+      rendererMobile.render(sceneMobile, cameraMobile);
+    }
+
+    animate();
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+
+      cameraMobile.aspect = container_mobile.clientWidth / container_mobile.clientHeight;
+      cameraMobile.updateProjectionMatrix();
+      rendererMobile.setSize(container_mobile.clientWidth, container_mobile.clientHeight);
+    });
+  </script>
+</body>
+</html>
